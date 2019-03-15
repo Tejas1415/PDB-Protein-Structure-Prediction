@@ -17,12 +17,23 @@ STEP 7: Build a Deep Learning model for this problem.
 
 """   
 
+""" 
+THis Code is to do parsing/ extract CA coordinates, extract sequence,    \
+one-hot encode the sequence, and to manually calculate the distance matrix for one particular file. 
+
+"""
+
 
 # Step 1: Sequence retreival
 from Bio import SeqIO
 import numpy as np
 import pandas as pd
-handle = open("4kf8.pdb", "rU")
+
+output_size = 400 # Since most of protein sequences are less than 400 amino acids, we trim to 400 - for constant length of ip/op
+
+currentID = "4kf8.pdb"
+
+handle = open(currentID, "rU")       #open(4kf8.pdb)
  
 for record in SeqIO.parse(handle, "pdb-seqres"):
     chainA = record.seq
@@ -48,7 +59,7 @@ pdb = open("4kf8.pdb", "r")
 database = np.array(chainAfullforms)
 x_coord = list();
 y_coord = list();
-z_coord = list();
+z_coord = list();'
 j=0;
 count = 0;
 aminoAcids = list();
@@ -91,6 +102,20 @@ x_coord = fillNaN(x_coord)
 y_coord = fillNaN(y_coord)
 z_coord = fillNaN(z_coord)
 
+## Fix the length of arrays to 400 x 400 since most protein sequences in PDB have length less than 400.
+if len(x_coord) < output_size:        # If length of sequence is less than 400 - zero padd it to 400
+    out = [0]*output_size;
+    x_coord[len(x_coord):output_size] = out[len(x_coord):output_size] 
+    y_coord[len(y_coord):output_size] = out[len(y_coord):output_size] 
+    z_coord[len(z_coord):output_size] = out[len(z_coord):output_size] 
+    aminoAcids[len(aminoAcids):output_size] = out[len(aminoAcids):output_size] 
+else:                         # If length of sequence is more than 400, trim the sequence to 400
+    x_coord = x_coord[:output_size]
+    y_coord = y_coord[:output_size]
+    z_coord = z_coord[:output_size]
+    aminoAcids = aminoAcids[:output_size]
+    
+
 # Build a dataframe of all these lists.['AminoAcids', 'x_coord', 'y_coord', 'z_coord']
 df = pd.DataFrame()
 df['AminoAcids'] = aminoAcids
@@ -100,7 +125,7 @@ df['z_coord'] = z_coord
 
 
 # Step 6: create a input distance matrix with zero padding ~400 seq length.
-#  Remaining tasks - zero padding, saving i/p o/p, create input matrix. 
+#  Remaining tasks - saving i/p o/p
 
 from scipy.spatial import distance_matrix
 
@@ -110,23 +135,19 @@ df = pd.DataFrame(data, columns = ['x_coord', 'y_coord','z_coord'], index = amin
 df1 = pd.DataFrame(distance_matrix(df.values, df.values), index=df.index, columns = df.index)
 
 
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
+## Now creating an input matrix.
 
+uniqueAmino = [];             # UniqueAmino has all 22 diff amino acids possible.
+for key in revAbb.keys():
+    uniqueAmino.append(revAbb[key])    
 
+ipOneHot = np.zeros([len(uniqueAmino), output_size])           
 
-    
+for i in range(len(uniqueAmino)):
+    for j in range(output_size):
+        if uniqueAmino[i] == aminoAcids[j]:
+            ipOneHot[i,j] = 1
+            
+            ### ipOneHot is the input one hot encoded sequence. 
+            ### df1 is the data frame that should be the output
+            
